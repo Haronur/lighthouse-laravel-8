@@ -61,6 +61,7 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 ## Installing Lighthouse
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://lighthouse-php.com/assets/img/flow.f9dcf86d.png"></a></p>
 ### Memory limit errors
 - Try increasing the limit in your `php.ini` file (ex.` /etc/php5/cli/php.ini` for Debian-like systems):
 
@@ -136,4 +137,257 @@ php artisan make:seeder CommentSeeder
 php artisan migrate:refresh
 php artisan db:seed
 ```
-- And Check your Database table in my case at `phpMyAdmin` named  `lighthouse-laravel-8`(it has some seeded data for your testing) 
+- And Check your Database table in my case at `phpMyAdmin` named  `lighthouse-laravel-8`(it has some seeded data for your testing)
+
+### The Models
+
+- This first part will show you how to set up the models and database migrations and does not include any specifics related to GraphQL or Lighthouse.
+
+- Our blog follows some simples rules:
+```
+-  a user can publish multiple posts
+-  each post can have multiple comments from anonymous users
+```
+- We can model this in our database schema like this.
+
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://lighthouse-php.com/assets/img/model.08d79f32.png" width="500"></a></p>
+
+**Database relations diagram*
+###  Begin by defining models and migrations for your posts and comments
+
+- Replace the newly generated `app/Models/Post.php` with this below:
+``` php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Post extends Model
+{
+    use HasFactory;
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+}
+```
+and the `create_posts_table.php` with this below:
+``` php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreatePostsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('posts', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('author_id');
+            $table->string('title');
+            $table->string('content');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('posts');
+    }
+}
+```
+### Let's do the same for the Comment model:
+-Replace the newly generated `app/Models/Comment.php` with this below:
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Comment extends Model
+{
+    use HasFactory;
+    public function post(): BelongsTo
+    {
+        return $this->belongsTo(Post::class);
+    }
+}
+```
+and the `create_comments_table.php` with this below:
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateCommentsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('comments', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('post_id');
+            $table->string('reply');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('comments');
+    }
+}
+```
+- Remember to run the migrations:
+``` sh
+php artisan migrate
+```
+### Finally, add the `posts` relation to `app/User.php`
+like below:
+``` php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'author_id');
+    }
+}
+```
+
+### The Schema
+- Let's edit `graphql/schema.graphql` and define our blog schema, based on the `Eloquent models` we created.
+- We add two queries for retrieving posts to the root `Query` type:
+```
+type Query {
+  posts: [Post!]! @all
+  post(id: Int! @eq): Post @find
+}
+```
+- The way that Lighthouse knows how to resolve the queries is a combination of convention-based naming - the type name `Post` is also the name of our Model - and the use of server-side directives.
+
+    `@all` returns a list of all Post models
+    `@find` and `@eq` are combined to retrieve a single `Post` by its ID
+
+- We add additional type definitions that clearly define the shape of our data:
+``` php
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  created_at: DateTime!
+  updated_at: DateTime!
+  posts: [Post!]! @hasMany
+}
+
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  author: User! @belongsTo
+  comments: [Comment!]! @hasMany
+}
+
+type Comment {
+  id: ID!
+  reply: String!
+  post: Post! @belongsTo
+}
+```
+- Just like in Eloquent, we express the relationship between our types using the `@belongsTo` and `@hasMany` directives.
+
+### The Result
+- Insert some fake data into your database, you can use Laravel seeders for that.(We already created)
+- Visit `/graphql-playground` and try the following query:
+``` php
+{
+  posts {
+    id
+    title
+    author {
+      name
+    }
+    comments {
+      id
+      reply
+    }
+  }
+}
+```
+- You should get a list of all the posts in your database, together with all of its comments and the name of the author.
+- Hopefully, this example showed you a glimpse of the power of GraphQL and how Lighthouse makes it easy to build your own server with Laravel.
