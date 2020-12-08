@@ -13,6 +13,7 @@ class PostSeeder extends Seeder
      */
     public function run()
     {
-        //
+        // factory(\App\Models\Post::class, 5)->create(); // < Laravel Verssion 8
+        \App\Models\Post::factory()->count(10)->create();
     }
 }

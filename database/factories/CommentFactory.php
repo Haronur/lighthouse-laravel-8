@@ -22,7 +22,8 @@ class CommentFactory extends Factory
     public function definition()
     {
         return [
-            //
+            'post_id' => \App\Models\Post::inRandomOrder()->first()->id,
+            'reply' => $this->faker->name,
         ];
     }
 }

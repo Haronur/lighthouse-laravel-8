@@ -13,6 +13,7 @@ class CommentSeeder extends Seeder
      */
     public function run()
     {
-        //
+        // factory(\App\Models\Comment::class, 5)->create(); // < Laravel Verssion 8
+        \App\Models\Comment::factory()->count(15)->create();
     }
 }

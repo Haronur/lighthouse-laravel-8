@@ -22,7 +22,9 @@ class PostFactory extends Factory
     public function definition()
     {
         return [
-            //
+            'author_id' => \App\Models\User::inRandomOrder()->first()->id,
+            'title' => $this->faker->name,
+            'content' => $this->faker->paragraph,
         ];
     }
 }

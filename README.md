@@ -121,7 +121,7 @@ php artisan tinker
 php artisan make:model -m Post
 php artisan make:model -m Comment
 ```
-##  Create Some Files to Generate dummy data
+##  Create Factory & Seeder Files to Generate dummy data
 ```
 php artisan make:factory PostFactory --model=Post
 php artisan make:factory CommentFactory --model=Comment
@@ -129,3 +129,11 @@ php artisan make:factory CommentFactory --model=Comment
 php artisan make:seeder PostSeeder
 php artisan make:seeder CommentSeeder
 ``` 
+## -- Generate dummy data in Laravel 8 using Model Factory --
+#### Customize Some files for Generate dummy data in Laravel 8 using Model Factory
+#### Finally run those below command:
+```
+php artisan migrate:refresh
+php artisan db:seed
+```
+- And Check your Database table in my case at `phpMyAdmin` named  `lighthouse-laravel-8`(it has some seeded data for your testing) 
