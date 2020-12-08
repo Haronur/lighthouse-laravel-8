@@ -112,3 +112,12 @@ php artisan tinker
   }
 }
 ```
+- Now, let's move on and create a GraphQL API for our blog.
+
+## -- Run Command to Create Some Files --
+- Run below command to create all files below
+
+```
+php artisan make:model -m Post
+php artisan make:model -m Comment
+```
