@@ -59,3 +59,56 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Installing Lighthouse
+### Memory limit errors
+- Try increasing the limit in your `php.ini` file (ex.` /etc/php5/cli/php.ini` for Debian-like systems):
+
+```
+; Use -1 for unlimited or define an explicit value like 2G
+memory_limit = -1
+```
+- Of course, we will use Lighthouse as the GraphQL Server.
+
+```composer require nuwave/lighthouse```
+
+- In this tutorial we will use GraphQL Playground as an IDE for GraphQL queries. It's like Postman for GraphQL, but with super powers.
+
+```composer require mll-lab/laravel-graphql-playground```
+
+- Then publish default schema to `graphql/schema.graphql`.
+
+```php artisan vendor:publish --tag=lighthouse-schema```
+
+- Consult the Laravel docs on database configuration and ensure you have a working database set up.
+#### Create Database at phpMyAdmin named `lighthouse-laravel-8` and setup `.env` file in your root directory 
+
+- Database
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=lighthouse-laravel-8
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+- Run database migrations to create the users table:
+```
+php artisan migrate
+```
+- Seed the database with some fake users:
+```
+php artisan tinker
+\App\Models\User::factory()->count(30)->create();
+``` 
+- To make sure everything is working, access Laravel GraphQL Playground on `http://127.0.0.1:8000/graphql-playground` and try the following query:
+```
+{
+  user(id: 1) {
+    id
+    name
+    email
+  }
+}
+```
