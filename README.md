@@ -121,3 +121,11 @@ php artisan tinker
 php artisan make:model -m Post
 php artisan make:model -m Comment
 ```
+##  Create Some Files to Generate dummy data
+```
+php artisan make:factory PostFactory --model=Post
+php artisan make:factory CommentFactory --model=Comment
+
+php artisan make:seeder PostSeeder
+php artisan make:seeder CommentSeeder
+``` 
